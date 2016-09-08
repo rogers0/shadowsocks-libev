@@ -1,3 +1,20 @@
+shadowsocks-libev (2.5.0+ds-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Add option to customize MTU.
+    - Add mptcp support.
+    - Set QoS flag for UDP forwarding.
+    - Add aes-ctr ciphers.
+    - Various bugfixes.
+    - Update documentation.
+  * debian/copyright: update "Files-Excluded" field.
+  * debian/README.Debian: add description for ciphers.
+  * debian/patches: drop patch 0003 for asciidoc fix.
+  * debian/patches: refresh patches.
+  * debian/changelog: fix minor typo.
+
+ -- Boyuan Yang <073plan@gmail.com>  Thu, 08 Sep 2016 19:07:52 +0800
+
 shadowsocks-libev (2.4.8+ds-1) unstable; urgency=medium
 
   * Update to upstream v2.4.8
