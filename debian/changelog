@@ -4,7 +4,7 @@ shadowsocks-libev (2.4.8+ds-1) unstable; urgency=medium
     - Remove patches merged by upstream: 0003 0004 0005
     - Update patch 0001: make it appliable to this version
     - Update debian/control to add newly appended build-dep
-    - Update debian/rulesi to adjust param ordering as close as upstream
+    - Update debian/rules to adjust param ordering as close as upstream
     - Update debian/copyright to remove man/, which merged into doc/ folder
   * debian/patches:
     - Cherry-Pick upstream patch 0003: add a few spaces to asciidoc to make
