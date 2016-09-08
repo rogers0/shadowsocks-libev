@@ -26,7 +26,7 @@ index 690af43..8c1ec59 100644
  if ENABLE_DOCUMENTATION
  SUBDIRS += doc
 diff --git a/configure.ac b/configure.ac
-index fb40c43..a6cdd0d 100755
+index 5742448..2ddfdf2 100755
 --- a/configure.ac
 +++ b/configure.ac
 @@ -69,11 +69,6 @@ AC_PROG_LIBTOOL
