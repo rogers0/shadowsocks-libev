@@ -1,9 +1,0 @@
-shadowsocks-libev for Debian
-----------------------
-
-The Debian package has added systemd support. A default server service which
-reads the default configuration in /etc/default/shadowsocks-libev is installed
-and enabled by default, plus some other service templates placed in
-/lib/systemd/system, which can be used by users later.
-
- -- Boyuan Yang <073plan@gmail.com>  Wed, 14 Oct 2015 09:18:50 +0800
