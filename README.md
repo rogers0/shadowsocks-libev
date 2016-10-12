@@ -9,7 +9,7 @@ It is a port of [Shadowsocks](https://github.com/shadowsocks/shadowsocks)
 created by [@clowwindy](https://github.com/clowwindy), which is maintained by
 [@madeye](https://github.com/madeye) and [@linusyang](https://github.com/linusyang).
 
-Current version: 2.5.3 | [Changelog](debian/changelog)
+Current version: 2.5.5 | [Changelog](debian/changelog)
 
 Travis CI: [![Travis CI](https://travis-ci.org/shadowsocks/shadowsocks-libev.svg?branch=master)](https://travis-ci.org/shadowsocks/shadowsocks-libev)
 
@@ -227,7 +227,7 @@ e.g. Ubuntu, Debian or Linux Mint, you can build the binary like this:
 
 ```bash
 # Debian / Ubuntu
-sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev asciidoc xmlto
+sudo apt-get install --no-install-recommends build-essential autoconf libtool libssl-dev libpcre3-dev asciidoc xmlto
 # CentOS / Fedora / RHEL
 sudo yum install gcc autoconf libtool automake make zlib-devel openssl-devel asciidoc xmlto
 ./configure && make
@@ -258,24 +258,8 @@ service shadowsocks_libev start
 
 ### OpenWRT
 
-**Note**: You may want to use [openwrt-shadowsocks](https://github.com/shadowsocks/openwrt-shadowsocks)
-, which is developed specifically for OpenWRT.
-
-```bash
-# At OpenWRT build root
-pushd package
-git clone https://github.com/shadowsocks/shadowsocks-libev.git
-popd
-
-# Enable shadowsocks-libev in network category
-make menuconfig
-
-# Optional
-make -j
-
-# Build the package
-make V=99 package/shadowsocks-libev/openwrt/compile
-```
+The OpenWRT project is maintained here:
+[openwrt-shadowsocks](https://github.com/shadowsocks/openwrt-shadowsocks).
 
 ### OS X
 For OS X, use [Homebrew](http://brew.sh) to install or build.

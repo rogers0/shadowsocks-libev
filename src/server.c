@@ -233,6 +233,8 @@ parse_header_len(const char atyp, const char *data, size_t offset)
     } else if ((atyp & ADDRTYPE_MASK) == 4) {
         // IP V6
         len += sizeof(struct in6_addr);
+    } else {
+        return 0;
     }
     len += 2;
     return len;
@@ -262,6 +264,8 @@ is_header_complete(const buffer_t *buf)
     } else if ((atyp & ADDRTYPE_MASK) == 4) {
         // IP V6
         header_len += sizeof(struct in6_addr);
+    } else {
+        return 0;
     }
 
     // len of port
@@ -299,16 +303,26 @@ get_peer_name(int fd)
 }
 
 static void
-report_addr(int fd)
+reset_addr(int fd)
+{
+    char *peer_name;
+    peer_name = get_peer_name(fd);
+    if (peer_name != NULL) {
+        remove_from_block_list(peer_name);
+    }
+}
+
+static void
+report_addr(int fd, int err_level)
 {
     char *peer_name;
     peer_name = get_peer_name(fd);
     if (peer_name != NULL) {
         LOGE("failed to handshake with %s", peer_name);
-    }
-    // Block all requests from this IP, if the err# exceeds 128.
-    if (check_block_list(peer_name, 128)) {
-        LOGE("block all requests from %s", peer_name);
+        // Block all requests from this IP, if the err# exceeds 128.
+        if (check_block_list(peer_name, err_level)) {
+            LOGE("add %s to block list", peer_name);
+        }
     }
 }
 
@@ -602,6 +616,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             // wait for more
             return;
         }
+
     } else {
         buf->len = r;
     }
@@ -610,7 +625,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
     if (err) {
         LOGE("invalid password or cipher");
-        report_addr(server->fd);
+        report_addr(server->fd, MALICIOUS);
         close_and_free_remote(EV_A_ remote);
         close_and_free_server(EV_A_ server);
         return;
@@ -652,7 +667,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
     if (server->stage == 5) {
         if (server->auth && !ss_check_hash(remote->buf, server->chunk, server->d_ctx, BUF_SIZE)) {
             LOGE("hash error");
-            report_addr(server->fd);
+            report_addr(server->fd, BAD);
             close_and_free_server(EV_A_ server);
             close_and_free_remote(EV_A_ remote);
             return;
@@ -720,15 +735,15 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
             size_t header_len = parse_header_len(atyp, server->buf->array, offset);
             size_t len        = server->buf->len;
 
-            if (len < offset + header_len + ONETIMEAUTH_BYTES) {
-                report_addr(server->fd);
+            if (header_len == 0 || len < offset + header_len + ONETIMEAUTH_BYTES) {
+                report_addr(server->fd, MALFORMED);
                 close_and_free_server(EV_A_ server);
                 return;
             }
 
             server->buf->len = offset + header_len + ONETIMEAUTH_BYTES;
             if (ss_onetimeauth_verify(server->buf, server->d_ctx->evp.iv)) {
-                report_addr(server->fd);
+                report_addr(server->fd, BAD);
                 close_and_free_server(EV_A_ server);
                 return;
             }
@@ -750,7 +765,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 offset += in_addr_len;
             } else {
                 LOGE("invalid header with addr type %d", atyp);
-                report_addr(server->fd);
+                report_addr(server->fd, MALFORMED);
                 close_and_free_server(EV_A_ server);
                 return;
             }
@@ -768,13 +783,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 offset += name_len + 1;
             } else {
                 LOGE("invalid name length: %d", name_len);
-                report_addr(server->fd);
-                close_and_free_server(EV_A_ server);
-                return;
-            }
-            if (!validate_hostname(host, name_len)) {
-                LOGE("invalid host name");
-                report_addr(server->fd);
+                report_addr(server->fd, MALFORMED);
                 close_and_free_server(EV_A_ server);
                 return;
             }
@@ -800,6 +809,12 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                     info.ai_addr      = (struct sockaddr *)addr;
                 }
             } else {
+                if (!validate_hostname(host, name_len)) {
+                    LOGE("invalid host name");
+                    report_addr(server->fd, MALFORMED);
+                    close_and_free_server(EV_A_ server);
+                    return;
+                }
                 need_query = 1;
             }
         } else if ((atyp & ADDRTYPE_MASK) == 4) {
@@ -814,7 +829,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 offset += in6_addr_len;
             } else {
                 LOGE("invalid header with addr type %d", atyp);
-                report_addr(server->fd);
+                report_addr(server->fd, MALFORMED);
                 close_and_free_server(EV_A_ server);
                 return;
             }
@@ -828,7 +843,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (offset == 1) {
             LOGE("invalid header with addr type %d", atyp);
-            report_addr(server->fd);
+            report_addr(server->fd, MALFORMED);
             close_and_free_server(EV_A_ server);
             return;
         }
@@ -842,7 +857,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
         }
 
         if (server->buf->len < offset) {
-            report_addr(server->fd);
+            report_addr(server->fd, MALFORMED);
             close_and_free_server(EV_A_ server);
             return;
         } else {
@@ -859,7 +874,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
         if (server->auth && !ss_check_hash(server->buf, server->chunk, server->d_ctx, BUF_SIZE)) {
             LOGE("hash error");
-            report_addr(server->fd);
+            report_addr(server->fd, BAD);
             close_and_free_server(EV_A_ server);
             return;
         }
@@ -983,14 +998,14 @@ server_timeout_cb(EV_P_ ev_timer *watcher, int revents)
     if (server->stage < 2) {
         if (verbose) {
             size_t len = server->stage ?
-                server->header_buf->len : server->buf->len;
+                         server->header_buf->len : server->buf->len;
 #ifdef __MINGW32__
             LOGI("incomplete header: %u", len);
 #else
             LOGI("incomplete header: %zu", len);
 #endif
         }
-        report_addr(server->fd);
+        report_addr(server->fd, SUSPICIOUS);
     }
 
     close_and_free_remote(EV_A_ remote);
@@ -1166,6 +1181,9 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
             }
             remote_send_ctx->connected = 1;
 
+            // Clear the state of this address in the block list
+            reset_addr(server->fd);
+
             if (remote->buf->len == 0) {
                 server->stage = 5;
                 ev_io_stop(EV_A_ & remote_send_ctx->io);
@@ -1322,10 +1340,13 @@ new_server(int fd, listen_ctx_t *listener)
         server->d_ctx = NULL;
     }
 
+    int request_timeout = min(MAX_REQUEST_TIMEOUT, listener->timeout)
+        + rand() % MAX_REQUEST_TIMEOUT;
+
     ev_io_init(&server->recv_ctx->io, server_recv_cb, fd, EV_READ);
     ev_io_init(&server->send_ctx->io, server_send_cb, fd, EV_WRITE);
     ev_timer_init(&server->recv_ctx->watcher, server_timeout_cb,
-                  min(MAX_CONNECT_TIMEOUT, listener->timeout), listener->timeout);
+                  request_timeout, listener->timeout);
 
     balloc(server->buf, BUF_SIZE);
     balloc(server->header_buf, BUF_SIZE);
@@ -1419,13 +1440,17 @@ accept_cb(EV_P_ ev_io *w, int revents)
         return;
     }
 
-    if (acl) {
-        char *peer_name = get_peer_name(serverfd);
-        if (peer_name != NULL) {
+    char *peer_name = get_peer_name(serverfd);
+    if (peer_name != NULL) {
+        if (check_block_list(peer_name, 0)) {
+            LOGE("block all requests from %s", peer_name);
+            close(serverfd);
+            return;
+        }
+        if (acl) {
             if ((get_acl_mode() == BLACK_LIST && acl_match_host(peer_name) == 1)
-                || (get_acl_mode() == WHITE_LIST && acl_match_host(peer_name) >= 0)) {
-                if (verbose)
-                    LOGI("Access denied from %s", peer_name);
+                    || (get_acl_mode() == WHITE_LIST && acl_match_host(peer_name) >= 0)) {
+                LOGE("Access denied from %s", peer_name);
                 close(serverfd);
                 return;
             }

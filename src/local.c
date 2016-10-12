@@ -467,13 +467,13 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
 
                 memcpy(resp_buf->array, &response, sizeof(struct socks5_response));
                 memcpy(resp_buf->array + sizeof(struct socks5_response),
-                        &sock_addr.sin_addr, sizeof(sock_addr.sin_addr));
+                       &sock_addr.sin_addr, sizeof(sock_addr.sin_addr));
                 memcpy(resp_buf->array + sizeof(struct socks5_response) +
-                        sizeof(sock_addr.sin_addr),
-                        &sock_addr.sin_port, sizeof(sock_addr.sin_port));
+                       sizeof(sock_addr.sin_addr),
+                       &sock_addr.sin_port, sizeof(sock_addr.sin_port));
 
                 int reply_size = sizeof(struct socks5_response) +
-                    sizeof(sock_addr.sin_addr) + sizeof(sock_addr.sin_port);
+                                 sizeof(sock_addr.sin_addr) + sizeof(sock_addr.sin_port);
 
                 int s = send(server->fd, resp_buf->array, reply_size, 0);
 
@@ -511,7 +511,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (acl || verbose) {
                     uint16_t p = ntohs(*(uint16_t *)(buf->array + 4 + in_addr_len));
                     dns_ntop(AF_INET, (const void *)(buf->array + 4),
-                            ip, INET_ADDRSTRLEN);
+                             ip, INET_ADDRSTRLEN);
                     sprintf(port, "%d", p);
                 }
             } else if (atyp == 3) {
@@ -537,7 +537,7 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 if (acl || verbose) {
                     uint16_t p = ntohs(*(uint16_t *)(buf->array + 4 + in6_addr_len));
                     dns_ntop(AF_INET6, (const void *)(buf->array + 4),
-                            ip, INET6_ADDRSTRLEN);
+                             ip, INET6_ADDRSTRLEN);
                     sprintf(port, "%d", p);
                 }
             } else {
@@ -557,10 +557,10 @@ server_recv_cb(EV_P_ ev_io *w, int revents)
                 int ret    = 0;
                 if (p == http_protocol->default_port)
                     ret = http_protocol->parse_packet(buf->array + 3 + abuf->len,
-                            buf->len - 3 - abuf->len, &hostname);
+                                                      buf->len - 3 - abuf->len, &hostname);
                 else if (p == tls_protocol->default_port)
                     ret = tls_protocol->parse_packet(buf->array + 3 + abuf->len,
-                            buf->len - 3 - abuf->len, &hostname);
+                                                     buf->len - 3 - abuf->len, &hostname);
                 if (ret == -1) {
                     server->stage = 2;
                     bfree(abuf);
@@ -922,7 +922,7 @@ new_remote(int fd, int timeout)
     ev_timer_init(&remote->send_ctx->watcher, remote_timeout_cb,
                   min(MAX_CONNECT_TIMEOUT, timeout), 0);
     ev_timer_init(&remote->recv_ctx->watcher, remote_timeout_cb,
-                  min(MAX_CONNECT_TIMEOUT, timeout), timeout);
+                  timeout, timeout);
 
     balloc(remote->buf, BUF_SIZE);
 

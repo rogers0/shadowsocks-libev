@@ -435,7 +435,6 @@ remote_send_cb(EV_P_ ev_io *w, int revents)
                 memcpy(abuf->array + abuf->len, server->hostname, server->hostname_len);
                 abuf->len += server->hostname_len;
                 memcpy(abuf->array + abuf->len, &port, 2);
-
             } else if (AF_INET6 == server->destaddr.ss_family) { // IPv6
                 abuf->array[abuf->len++] = 4;          // Type 4 is IPv6 address
 
@@ -780,6 +779,8 @@ main(int argc, char **argv)
     };
 
     opterr = 0;
+
+    USE_TTY();
 
     while ((c = getopt_long(argc, argv, "f:s:p:l:k:t:m:c:b:a:n:huUvA",
                             long_options, &option_index)) != -1) {
