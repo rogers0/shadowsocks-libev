@@ -408,8 +408,18 @@ xenial)
 esac
 
 [ $BUILD_LIB -eq 1 -o $BUILD_BIN -eq 1 ] && case "$OSVER" in
-wheezy|precise)
+precise)
 	echo Sorry, your system $OSID/$OSVER is not supported.
+	;;
+wheezy)
+	build_install_libcork trusty
+	build_install_libcorkipset trusty
+	build_install_libmbedtls debian/jessie-backports
+	build_install_libsodium
+	build_install_libbloom exp1_trusty
+	patch_sslibev_dh9 exp1
+	build_install_sslibev exp1
+	build_install_simpleobfs exp1_trusty
 	;;
 jessie|stretch|unstable|sid|zesty)
 	build_install_libbloom exp1
