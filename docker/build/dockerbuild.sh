@@ -2,4 +2,4 @@
 set -e
 set -o xtrace
 
-cmake -DBUILD_STATIC=OFF . && make && make install
+cmake -DWITH_STATIC=OFF . && make && make install
